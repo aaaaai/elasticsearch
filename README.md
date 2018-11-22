@@ -25,12 +25,16 @@ version must be same.
 update ..\elasticsearch-6.4.2\config\elasticsearch.yml
 
 #---------------------------------- Network -----------------------------------
+
 #network.host: 192.168.0.1
-network.host: 192.168.3.163
+
+network.host: 192.168.3.1
 
 #--------------------------------- Discovery ----------------------------------
+
 #discovery.zen.ping.unicast.hosts: ["host1", "host2"]
-discovery.zen.ping.unicast.hosts: ["192.168.3.163","127.0.0.1","192.168.3.119"]
+
+discovery.zen.ping.unicast.hosts: ["192.168.3.1","127.0.0.1","192.168.3.2"]
 
 
 
