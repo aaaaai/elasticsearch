@@ -26,7 +26,7 @@ public class ESManager {
         try {
             //默认端口号9300，url访问127.0.0.1:9200,端口不一样
 //            String ip = "127.0.0.1";
-            String ip = "192.168.3.163";
+            String ip = "192.168.3.1";
             InetAddress ia = InetAddress.getByName(ip);
             System.out.println(ia);
             client.addTransportAddress(new TransportAddress(ia, 9300));
