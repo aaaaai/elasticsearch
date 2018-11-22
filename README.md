@@ -22,7 +22,7 @@ in elasticsearch folder execute command:
 
 version must be same.
 
-update ..\elasticsearch-6.4.2\config\elasticsearch.yml
+# update ..\elasticsearch-6.4.2\config\elasticsearch.yml
 
 #---------------------------------- Network -----------------------------------
 
@@ -38,11 +38,11 @@ discovery.zen.ping.unicast.hosts: ["192.168.3.1","127.0.0.1","192.168.3.2"]
 
 
 
-update ..\kibana-6.4.2\config\kibana.yml
+# update ..\kibana-6.4.2\config\kibana.yml
 
 elasticsearch.url: "http://192.168.3.163:9200"
 
-java maven project pom.xml
+# java maven project pom.xml
 
 		<!-- https://mvnrepository.com/artifact/org.ansj/ansj_seg -->
 		<dependency>
