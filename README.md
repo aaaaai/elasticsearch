@@ -12,7 +12,7 @@ download elasticsearch-analysis-ansj
 
 https://github.com/NLPchina/elasticsearch-analysis-ansj
 
-user chrome brower download https://github.com/NLPchina/elasticsearch-analysis-ansj/releases/download/v6.4.2/elasticsearch-analysis-ansj-6.4.2.0-release.zip
+user chrome brower download https://github.com/NLPchina/elasticsearch-analysis-ansj/releases/download/v6.4.2/elasticsearch-analysis-ansj-6.4.2.0-release.zip  （because net download too slowly）
 
 copy zip to web project:http://127.0.0.1:8080/app/elasticsearch-analysis-ansj-6.4.2.0-release.zip
 
