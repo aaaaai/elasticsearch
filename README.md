@@ -77,3 +77,4 @@ elasticsearch.url: "http://192.168.3.1:9200"
 		</dependency>
 
 java class:
+go to see ESManager.java
