@@ -42,6 +42,12 @@ discovery.zen.ping.unicast.hosts: ["192.168.3.1","127.0.0.1","192.168.3.2"]
 
 elasticsearch.url: "http://192.168.3.1:9200"
 
+# start run
+elasticsearch-6.4.2\bin\elasticsearch.bat
+kibana-6.4.2\bin\kibana.bat
+http://192.168.3.1:9200/index_name/_search?q=username:%E4%B8%AD%E5%9B%BD
+http://localhost:5601
+
 # java maven project pom.xml
 
 		<!-- https://mvnrepository.com/artifact/org.ansj/ansj_seg -->
@@ -78,3 +84,5 @@ elasticsearch.url: "http://192.168.3.1:9200"
 
 java class:
 go to see ESManager.java
+
+
