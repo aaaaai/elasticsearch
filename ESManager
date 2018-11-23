@@ -7,7 +7,7 @@
  */
 public class ESManager {
 
-    private static TransportClient tclient  = null;
+    private static volatile TransportClient tclient  = null;
     /**
      * Parameter	                                Description
      client.transport.ignore_cluster_name           Set to true to ignore cluster name validation of connected nodes. (since 0.19.4)
@@ -41,7 +41,11 @@ public class ESManager {
     private static TransportClient getESClient(){
         if (tclient==null){
             System.setProperty("es.set.netty.runtime.available.processors", "false");
-            tclient = getTransportClient();
+            synchronized (ESManager.class) {
+                if (tclient == null) {
+                    tclient = getTransportClient();
+                }
+            }
 
         }
         return tclient;
