@@ -89,7 +89,7 @@ http://localhost:5601
 java class:
 go to see ESManager.java
 
-#elasticsearch6.2.2+ansj5.1.6+spring3.1.2
+# elasticsearch6.2.2+ansj5.1.6+spring3.1.2
 
 <!-- https://mvnrepository.com/artifact/org.ansj/ansj_seg -->
 		<dependency>
