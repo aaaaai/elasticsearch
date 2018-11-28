@@ -89,4 +89,44 @@ http://localhost:5601
 java class:
 go to see ESManager.java
 
+#elasticsearch6.2.2+ansj5.1.6+spring3.1.2
 
+<!-- https://mvnrepository.com/artifact/org.ansj/ansj_seg -->
+		<dependency>
+			<groupId>org.ansj</groupId>
+			<artifactId>ansj_seg</artifactId>
+			<version>5.1.6</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.ansj/ansj_lucene7_plug -->
+		<dependency>
+			<groupId>org.ansj</groupId>
+			<artifactId>ansj_lucene7_plug</artifactId>
+			<version>5.1.5.1</version>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.elasticsearch/elasticsearch -->
+		<dependency>
+			<groupId>org.elasticsearch</groupId>
+			<artifactId>elasticsearch</artifactId>
+			<version>6.2.2</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.elasticsearch.client/transport -->
+		<dependency>
+			<groupId>org.elasticsearch.client</groupId>
+			<artifactId>transport</artifactId>
+			<version>6.2.2</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.elasticsearch.plugin/transport-netty4-client -->
+		<dependency>
+			<groupId>org.elasticsearch.plugin</groupId>
+			<artifactId>transport-netty4-client</artifactId>
+			<version>6.2.2</version>
+		</dependency>
+
+
+		<!-- https://mvnrepository.com/artifact/org.springframework.data/spring-data-elasticsearch -->
+		<dependency>
+			<groupId>org.springframework.data</groupId>
+			<artifactId>spring-data-elasticsearch</artifactId>
+			<version>3.1.2.RELEASE</version>
+		</dependency>
