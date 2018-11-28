@@ -88,6 +88,7 @@ http://localhost:5601
 
 java class:
 go to see ESManager.java
+after add index,wait several seconds,then you can search that.
 
 # elasticsearch6.2.2+ansj5.1.6+spring3.1.2
 
