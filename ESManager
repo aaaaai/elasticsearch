@@ -1,11 +1,7 @@
-/**
- *
- //https://www.elastic.co/downloads/elasticsearch
- //G:\app\elasticsearch-6.4.3
- //http://127.0.0.1:9200/
- //https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/index.html
- */
+
 public class ESManager {
+
+//    private static int PORT = 9300;
 
     private static volatile TransportClient tclient  = null;
     /**
@@ -18,18 +14,37 @@ public class ESManager {
 
      */
     private static TransportClient getTransportClient(){
+        String analyzer_name_index = AnsjAnalyzer.TYPE.index_ansj.name();
+        String analyzer_name_query = AnsjAnalyzer.TYPE.query_ansj.name();
         Settings settings = Settings.builder()
-                .put("cluster.name", "elasticsearch").build();
-
+                .put("cluster.name", "elasticsearch")
+//                .put("number_of_shards", 1)
+//        "analysis" : {
+//            "analyzer":{
+//                "content":{
+//                    "type":"custom",
+//                            "tokenizer":"whitespace"
+//                }
+//            }
+//        }
+//                .put("analysis.analyzer.content.type","ansj")
+//                .put("analysis.analyzer.content.type",analyzer_name_query)
+//                .put("index.analysis.analyzer.default.type",analyzer_name_index)
+//                .put("index.analysis.analyzer.default_search.type",analyzer_name_query)
+                .build();
         // on startup
         TransportClient client = new PreBuiltTransportClient(settings);
         try {
             //默认端口号9300，url访问127.0.0.1:9200,端口不一样
 //            String ip = "127.0.0.1";
-            String ip = "192.168.3.1";
+//            int port = 9300;
+            String ip = ConfigProperties.IP;
+            int port = ConfigProperties.PORT;
+
+            System.out.println(ip+":"+port);
             InetAddress ia = InetAddress.getByName(ip);
             System.out.println(ia);
-            client.addTransportAddress(new TransportAddress(ia, 9300));
+            client.addTransportAddress(new TransportAddress(ia, port));
 
         } catch (UnknownHostException e) {
             e.printStackTrace();
@@ -50,9 +65,178 @@ public class ESManager {
         }
         return tclient;
     }
+    public static void createIndex(String index) {
+        TransportClient client = getESClient();
+        XContentBuilder settings = getSettingsBuilder();
+        //创建index时，设置settings默认中文分词
+        CreateIndexResponse cir = client.admin().indices().prepareCreate(index)
+                .setSettings(settings).execute().actionGet();
+        if (cir.isAcknowledged()){
+            System.out.println("create "+index+" index success!");
+        }
+    }
+    public static void deleteIndex(String index){
+//        String index = "news";
+        TransportClient client = getESClient();
+        IndicesAdminClient iac = client.admin().indices();
+        DeleteIndexRequestBuilder dirb = iac.prepareDelete(index);
+        DeleteIndexResponse dir = dirb.execute().actionGet();
+        if (dir.isAcknowledged()){
+            System.out.println("delete "+index+" index success");
+        }
+    }
+
+//            "settings": {
+//                "analysis": {
+//                    "analyzer": {
+//                        "default": {
+//                            "tokenizer": "base_ansj"
+//                        }
+//                    }
+//                }
+//            },
+//            "mappings": {
+//                "_doc": {
+//                    "properties": {
+//                        "title": {
+//                            "type": "text"
+//                        }
+//                    }
+//                }
+//            }
+
+    /**
+     *
+     * @return
+     */
+    public static XContentBuilder getSettingsBuilder(){
+        try{
+            //settings
+            XContentBuilder builder =  XContentFactory.jsonBuilder()
+                    .startObject()
+                    .startObject("analysis")
+                    .startObject("analyzer")
+                    .startObject("default")
+//                    .field("tokenizer", analyzer)
+                      .field("tokenizer", "index_ansj")
+                    .endObject()
+                    .endObject()
+//                   .field("analyzer","base_ansj")
+                    .endObject()
+                    .endObject();
+            return builder;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * meta-fields include the document’s _index, _type, _id, and _source fields.
+     * a simple type like text, keyword, date, long, double, boolean or ip,integer
+     * @return
+     */
+    public static XContentBuilder getMappingsBuilder(){
+        try{
+            //mappings
+            XContentBuilder builder =  XContentFactory.jsonBuilder()
+                    .startObject()
+                    .startObject("_doc")
+                    .startObject("properties")
+                    .startObject("title")
+                    .field("type", "text")
+//                    .field("analyzer", "base_ansj")
+                    .endObject()
+                    .startObject("content")
+                    .field("type", "text")
+                    .endObject()
+                    .startObject("author")
+                    .field("type", "keyword")
+                    .endObject()
+                    .startObject("time")
+                    .field("type", "date")
+//                   .field("format", "date_hour_minute_second ")
+                    .field("format", "yyyy-MM-dd HH:mm:ss")
+                    .endObject()
+                    .endObject()
+                    .endObject()
+                    .endObject();
+            return builder;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     POST news/_close
+     PUT news/_settings
+     {
+     "analysis" : {
+     "analyzer" : {
+     "default" : {
+     "type" : "base_ansj"
+     }
+     }
+     }
+     }
+     POST news/_open
+
+     GET news/_settings
+     */
+    public static void setSettings(String index){
+//        String index = "news";
+        //创建完index，要设置settings默认中文分词，必须先close index更改settings,然后再open index
+        //参考https://stackoverflow.com/questions/34894671/set-default-analyzer-of-index
+        TransportClient client = getESClient();
+
+        IndicesAdminClient iac = client.admin().indices();
+
+        CloseIndexRequestBuilder cirb = iac.prepareClose(index);
+        CloseIndexResponse cir = cirb.execute().actionGet();
+        if (cir.isAcknowledged()){
+            System.out.println("close success");
+//            System.out.println(cir.toString());
+        }
+
+        UpdateSettingsRequestBuilder usrb = iac.prepareUpdateSettings(index);
+        XContentBuilder xcb = getSettingsBuilder();
+        String source="";
+        try {
+            source = xcb.string();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        usrb.setSettings(source,xcb.contentType());
+        UpdateSettingsResponse usr = usrb.execute().actionGet();
+        if (usr.isAcknowledged()){
+            System.out.println("update success");
+        }
 
 
+        OpenIndexRequestBuilder oirb = iac.prepareOpen(index);
+        OpenIndexResponse oir = oirb.execute().actionGet();
+        if (oir.isAcknowledged()){
+            System.out.println("open success");
+        }
+        GetSettingsRequestBuilder gsrb = iac.prepareGetSettings(index);
+        GetSettingsResponse gsr = gsrb.execute().actionGet();
+        ImmutableOpenMap<String, Settings> iomap = gsr.getIndexToSettings();
+        System.out.println(iomap);
 
+
+    }
+    public static void setMappings(String index,String type){
+        TransportClient client = getESClient();
+        IndicesAdminClient iac = client.admin().indices();
+
+        XContentBuilder mappings = getMappingsBuilder();
+        PutMappingRequest mappingRequest = Requests.putMappingRequest(index).type(type).source(mappings);
+        PutMappingResponse pmr = iac.putMapping(mappingRequest).actionGet();
+        if (pmr.isAcknowledged()){
+            System.out.println("put mappings success!");
+        }
+    }
     /**
      * loc:存储位置：index，type,id
      * doc:存储文档内容
@@ -72,11 +256,14 @@ public class ESManager {
 //        json.put("postDate",new Date());
 //        json.put("message","trying out Elasticsearch");
 
+//        XContentBuilder setting = getSettingBuilder();
+//        PutMappingRequest mappingRequest = Requests.putMappingRequest(index).type(type).source(setting);
+//        client.admin().indices().putMapping(mappingRequest);
 
         //prepareIndex(String index, String type, @Nullable String id) {
         IndexRequestBuilder indexBuilder = client.prepareIndex(index,type,id);
         try {
-            XContentBuilder contentBuilder = XContentFactory.jsonBuilder();
+            XContentBuilder contentBuilder = jsonBuilder();
             Set<String> keys = doc.keySet();
             contentBuilder.startObject();
             for (String key:keys) {
@@ -139,7 +326,7 @@ public class ESManager {
                     .get();
 
             client.prepareUpdate("ttl", "doc", "1")
-                    .setDoc(XContentFactory.jsonBuilder()
+                    .setDoc(jsonBuilder()
                             .startObject()
                             .field("gender", "male")
                             .endObject())
@@ -157,7 +344,7 @@ public class ESManager {
         updateRequest.type("_doc");
         updateRequest.id("1");
         try {
-            updateRequest.doc(XContentFactory.jsonBuilder()
+            updateRequest.doc(jsonBuilder()
                     .startObject()
                     .field("gender", "male")
                     .endObject());
@@ -172,13 +359,13 @@ public class ESManager {
         TransportClient client = getESClient();
         try {
             IndexRequest indexRequest = new IndexRequest("index", "type", "1")
-                    .source(XContentFactory.jsonBuilder()
+                    .source(jsonBuilder()
                             .startObject()
                             .field("name", "Joe Smith")
                             .field("gender", "male")
                             .endObject());
             UpdateRequest updateRequest = new UpdateRequest("index", "type", "1")
-                    .doc(XContentFactory.jsonBuilder()
+                    .doc(jsonBuilder()
                             .startObject()
                             .field("gender", "male")
                             .endObject())
@@ -212,7 +399,7 @@ public class ESManager {
         try {
             // either use client#prepare, or use Requests# to directly build index/delete requests
             bulkRequest.add(client.prepareIndex("twitter", "_doc", "1")
-                    .setSource(XContentFactory.jsonBuilder()
+                    .setSource(jsonBuilder()
                             .startObject()
                             .field("user", "kimchy")
                             .field("postDate", new Date())
@@ -222,7 +409,7 @@ public class ESManager {
             );
 
             bulkRequest.add(client.prepareIndex("twitter", "_doc", "2")
-                    .setSource(XContentFactory.jsonBuilder()
+                    .setSource(jsonBuilder()
                             .startObject()
                             .field("user", "kimchy")
                             .field("postDate", new Date())
@@ -239,9 +426,9 @@ public class ESManager {
             e.printStackTrace();
         }
     }
+
     public static Pagination<Map<String,Object>> search(QueryBuilder query, QueryBuilder filter, SortBuilder sort, PageParam page, String... indices){
         TransportClient client = getESClient();
-
 //        SearchResponse response = client.prepareSearch("index1", "index2")
         SearchRequestBuilder searchBuilder = client.prepareSearch(indices);
         /**
@@ -253,6 +440,22 @@ public class ESManager {
          COUNT：             只计算结果的数量，也会执行 facet。
          */
         searchBuilder.setSearchType(SearchType.DFS_QUERY_THEN_FETCH);
+
+
+//        QueryStringQueryBuilder query = new QueryStringQueryBuilder(key);
+//        query.analyzer("ik_smart");
+//        query.field("title").field("content");
+
+//        AnalyzeRequest ac = new AnalyzeRequest("news")
+//                .field("answer")
+//                .analyzer("base_ansj")
+//                .text("我是中国人")
+//                .explain(true);
+//
+//        AnalyzeRequestBuilder builder = new
+//        DetailAnalyzeResponse dar = iac.analyze(ac).actionGet().detail();
+
+
 
         if(query!=null){
             searchBuilder.setQuery(query) ;                // Query  QueryBuilder
@@ -303,6 +506,7 @@ public class ESManager {
             Map<String,Object> map = hit.getSourceAsMap();
             System.out.println(hit.getId()+"--"+hit.getScore());
             String json = hit.getSourceAsString();
+//            NewsInfo newsInfo = JsonUtils.readToObject(json, NewsInfo.class);
             System.out.println(json);
             list.add(map);
         }
@@ -316,55 +520,92 @@ public class ESManager {
         return result;
     }
 
+
     public static void analyze(){
         TransportClient client = getESClient();
-        AnalyzeRequest ar = new AnalyzeRequest();
-        ar.text("他叫孙悟空");
-        ar.analyzer("standard");//standard,simple,cjk
+        IndicesAdminClient iac = client.admin().indices();
 
-        List<AnalyzeResponse.AnalyzeToken> tokens = client.admin().indices().analyze(ar).actionGet().getTokens();
+//        XContentBuilder setting = getSettingsBuilder();
+//        PutMappingRequest mappingRequest = Requests.putMappingRequest("news").type("doc").source(setting);
+//        iac.putMapping(mappingRequest).actionGet();
+
+//        AnalyzeResponse r = iac.prepareAnalyze("中华人民共和国国歌").setAnalyzer("base_ansj").execute().actionGet();
+
+        AnalyzeRequest ar = new AnalyzeRequest();
+        ar.text("中华人民共和国国歌");
+        ar.analyzer("base_ansj");//standard,simple,cjk
+        AnalyzeResponse r = iac.analyze(ar).actionGet();
+        //https://stackoverflow.com/questions/34894671/set-default-analyzer-of-index
+
+        List<AnalyzeResponse.AnalyzeToken> tokens = r.getTokens();
         for (AnalyzeResponse.AnalyzeToken token : tokens)
         {
             System.out.println(token.getTerm());
         }
 
-//        client.admin().indices().prepareCreate("twitter")
-//                .setSettings(Settings.settingsBuilder().loadFromSource(jsonBuilder()
-//                        .startObject()
-//                        .startObject("analysis")
-//                        .startObject("analyzer")
-//                        .startObject("steak")
-//                        .field("type", "custom")
-//                        .field("tokenizer", "standard")
-//                        .field("filter", new String[]{"snowball", "standard", "lowercase"})
-//                        .endObject()
-//                        .endObject()
-//                        .endObject()
-//                        .endObject().string()))
-//                .execute().actionGet();
     }
-    public static void main(String[] args) {
-//        delete();
-//        index();
-        String index =  "aichat";
-        String type = "doc";
-        String id = UUIDUtil.uuid();
-        Map<String, Object> doc = new LinkedHashMap<String,Object>();
-        doc.put("username","赵翘楚");
-        doc.put("password","123456");
-        doc.put("age",12);
-        doc.put("gender",2);
 
-        index(index,type,id,doc);
+    public static void test() throws Exception{
+        TransportClient client = getESClient();
+        // url test:http://192.168.1.108:9200/twitter/_analyze?analyzer=ik&text=%E6%B5%8B%E8%AF%95elasticsearch%E5%88%86%E8%AF%8D%E5%99%A8%E7%9A%84%E6%95%88%E6%9E%9C&pretty=true//1.create a index
+//        client.admin().indices().prepareCreate("news").execute().actionGet();
+        //2.create a mapping
 
-        //http://127.0.0.1:9200/aichat/_search?q=username:%E4%B8%AD%E5%9B%BD
+        /**
+         * "settings": {
+             "analysis": {
+                 "analyzer": {
+                     "my_english_analyzer": {
+                         "type": "standard",
+                         "max_token_length": 5,
+                         "stopwords": "_english_"
+                     }
+                 }
+             }
+            }
+         */
 
-//        System.out.println("---------------");
-//        Map<String,Object>  map = get(index,type,id);
-//        System.out.println(map);
-//        delete(index,type,"59fa162c45314ea2b0433fbf0b1517f2");
+        XContentBuilder mapping =XContentFactory.jsonBuilder()
+                .startObject("settings")
+                    .startObject("analysis")
+                        .startObject("analyzer")
+                            .startObject("base_ansj")
+                                .field("type","standard")
+                                .field("max_token_length","5")
+                                .field("stopwords","_english_")
+                            .endObject()
+                        .endObject()
+                    .endObject()
+                .endObject();
+        PutMappingRequest mappingRequest = Requests.putMappingRequest("news").type("doc").source(mapping);
+        client.admin().indices().putMapping(mappingRequest).actionGet();
+        //3.index some docs
+        XContentBuilder builder1 =XContentFactory.jsonBuilder().startObject().field("content","美国留给伊拉克的是个烂摊子吗").endObject();
+        XContentBuilder builder2 =XContentFactory.jsonBuilder().startObject().field("content","公安部：各地校车将享最高路权").endObject();
+        BulkRequestBuilder bulkRequest = client.prepareBulk();
+        bulkRequest.add(client.prepareIndex("news", "doc", "1").setSource(builder1))
+                .add(client.prepareIndex("news", "doc", "2").setSource(builder2));
+        BulkResponse bulkResponse = bulkRequest.execute().actionGet();
+        if (bulkResponse.hasFailures()) {
+        }
+        //4.query with highlighting
+        SearchRequestBuilder builder = client.prepareSearch("news").setTypes("fulltext").setQuery(QueryBuilders.termQuery("question","你好"));
+        SearchResponse searchResponse = builder.execute().actionGet();
+        SearchHits hits = searchResponse.getHits();
+        long total = hits.getTotalHits();
+        for (SearchHit hit : hits) {
+            System.out.println(hit.toString());
+//            Map<String, HighlightField> result = hit.highlightFields();
+//            HighlightField titleField = result.get("content");
+//            Text[] titleTexts = titleField.fragments();
+//            for (Text text : titleTexts) {
+//                System.out.println(text);
+//            }
+        }
+    }
+    public static void testSearch(){
 
-//        PageParam page = PageUtil.get(1,10);
+
 //        BoolQueryBuilder booleanQuery = QueryBuilders.boolQuery();
 //        booleanQuery.must(QueryBuilders.matchPhraseQuery("title", "好"));
 //        booleanQuery.must(QueryBuilders.matchPhraseQuery("title", "中"));
@@ -375,10 +616,51 @@ public class ESManager {
 //        searchBuilder.setQuery(QueryBuilders.termQuery("age", 20)) ;                // Query  QueryBuilder
 //        QueryBuilder filter = QueryBuilders.rangeQuery("age").from(12).to(100);
 //        SortBuilder sort = SortBuilders.fieldSort("age").order(SortOrder.DESC);
-//        search(query,null,null,page,"aichat");
+//        QueryBuilder filter = QueryBuilders.rangeQuery("age").from(12).to(100);
+//        SortBuilder sort = SortBuilders.fieldSort("age").order(SortOrder.DESC);
 
-        //https://www.jianshu.com/p/77fc4d9e4a16
+
+        PageParam page = PageUtil.get(1,10);
+
+        //        QueryBuilder query = QueryBuilders.matchPhraseQuery("content", "在理");
+        QueryStringQueryBuilder query = new QueryStringQueryBuilder("在理");
+        query.analyzer("query_ansj");
+        query.field("content");
+//        query.field("question").field("answer");
+        System.out.println(query.toString()+"===");
+        Pagination<Map<String,Object>> p = ESManager.search(query,null,null,page,"news");
+        List<Map<String,Object>> list = p.getList();
+        for (Map<String,Object> m:list) {
+            System.out.println(m);
+        }
+    }
+    public static void main(String[] args) throws Exception{
+       // http://127.0.0.1:9200/news/_search?q=content:%E5%9C%A8%E7%90%86
+        String index =  "news";
+        String type = "_doc";
+        String id = UUIDUtil.uuid();
+        Map<String, Object> doc = new LinkedHashMap<String,Object>();
+        doc.put("title","昨日新闻");
+        doc.put("content","刘述说的确实在理");
+        doc.put("author","刘强");
+        doc.put("time","2018-11-28 18:00:02");
+
+        ConfigProperties.IP="127.0.0.1";
+        ConfigProperties.PORT=9300;
+
 //        analyze();
-//
+//        createIndex(index);//step 1
+//        deleteIndex(index);
+//        setMappings(index,type);//step2
+//        index(index,type,id,doc);//step3
+//        delete(index,type,"59fa162c45314ea2b0433fbf0b1517f2");
+//        Map<String,Object>  map = get(index,type,id);
+//        System.out.println(map);
+
+        testSearch();//step4
+
+
+
+
     }
 }
